@@ -11,6 +11,7 @@
   "jest": {
     "testMatch": [
       "**/test.(1|2|3).js"
-    ]
+    ],
+    "ci": true
   }
 }
