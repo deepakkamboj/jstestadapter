@@ -2,7 +2,7 @@ import { FailedExpectation } from '../../../ObjectModel/TestFramework';
 import { TestOutcome } from '../../../ObjectModel/Common';
 
 export interface KarmaCallbacks {
-    handleJestRunComplete();
+    handleRunComplete();
     handleSpecFound(fullyQualifiedName: string,
         testCaseName: string,
         sourceFile: string,

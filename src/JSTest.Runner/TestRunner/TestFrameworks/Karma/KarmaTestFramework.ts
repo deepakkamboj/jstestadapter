@@ -4,6 +4,7 @@ import { Exception, ExceptionType } from '../../../Exceptions';
 import { BaseTestFramework } from '../BaseTestFramework';
 import { EqtTrace } from '../../../ObjectModel/EqtTrace';
 import { KarmaCallbacks } from './KarmaCallbacks';
+//import { KarmaReporter } from './KarmaReporter';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -32,6 +33,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
     private skipCurrentSpec: boolean = false;
     private nextPort: number = 9900;
     private karmaConfig: any;
+    private karmaReporter: any;
 
     private getKarma() {
         switch (this.environmentType) {
@@ -52,14 +54,16 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         EqtTrace.info('KarmaTestFramework: initializing Karma');
         this.karma = this.getKarma();
 
-        /*
-        this.jestReporter.INITIALIZE_REPORTER(<KarmaCallbacks>{
-            handleJestRunComplete: this.reporterRunCompleteHandler.bind(this),
-            handleSpecFound: this.handleSpecStarted.bind(this),
-            handleSpecResult: this.handleSpecResult.bind(this),
-            handleErrorMessage: this.handleErrorMessage.bind(this)
-        });
-        */
+/*
+        this.karmaReporter = require('./KarmaReporter')
+
+        this.karmaReporter.KarmaReporter.INITIALIZE_REPORTER(<KarmaCallbacks>{
+             //handleRunComplete: this.reporterRunCompleteHandler.bind(this),
+             handleSpecFound: this.handleSpecStarted.bind(this),
+             handleSpecResult: this.handleSpecResult.bind(this),
+             handleErrorMessage: this.handleErrorMessage.bind(this)
+         });
+         */
     }
 
     public startExecutionWithSources(sources: Array<string>, options: JSON): void {
@@ -103,13 +107,29 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         }
 
         if (testResultsFolder) {
-            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
-            this.karmaConfig.reporters.push('jstest');
             const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
+
+            //JsTestReporter
+
+            this.karmaConfig.plugins.push(require.resolve('./JsTestReporter.js'));
+            this.karmaConfig.reporters.push('jstest');
             this.karmaConfig.jstestReporter = {
-                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
-                shortTestName: false
+                outputFile: path.resolve(testResultsPath, 'jstest-test-results-' + testResultsFileNameSuffix + '.trx'),
+                shortTestName: false,
+                discovery: false
             };
+
+            //KarmaReporter
+            this.karmaConfig.plugins.push(require.resolve('./DeepakReporter.js'));
+            this.karmaConfig.reporters.push('deepak');
+            /*
+            this.karmaConfig.karmatestReporter = {
+                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
+                shortTestName: false,
+                discovery: false
+            };
+            */
+/**/
         }
 
         EqtTrace.info(`KarmaTestFramework: starting with options: ${JSON.stringify(options)}`);
@@ -126,6 +146,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         );
 
         this.initializeReporter(server);
+
         server.start()
         .then(() =>   this.karma.stopper.stop({port: this.karmaConfig.port}))
         .then(() => EqtTrace.info('KarmaTestFramework: Karma server exited gracefully'));
