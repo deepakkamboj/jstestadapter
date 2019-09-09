@@ -77,8 +77,7 @@ export class Whitelist {
         }
         if (typeof onError === 'function') {
             return onError(key);
-        }
-        else if (typeof onError === 'string') {
+        } else if (typeof onError === 'string') {
             throw new Error(onError);
         }
         return false;

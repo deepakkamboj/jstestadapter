@@ -4,7 +4,10 @@
         <TestFrameworkConfigJson>{
             "timeout": 60000,
             "testResultsPath": "testresults",
-            "debug" : "false"
+            "debug" : "false",
+            "isPowerApps" : "false",
+            "frameworks": ["qunit"],
+            "browsers": ["Chrome", "PhantomJS"]
         }</TestFrameworkConfigJson>
         <DebugLogs>true</DebugLogs>
         <DebugFilePath>e:\jstestadapter</DebugFilePath>

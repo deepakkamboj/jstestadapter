@@ -17,8 +17,7 @@ export class NodePromise<T> {
             this.callback = (err: Error, result: T) => {
                 if (err) {
                     reject(err);
-                }
-                else {
+                } else {
                     fulfill(result);
                 }
             };
@@ -34,9 +33,11 @@ export class CallbackPromise<T> {
     public readonly promise: Promise<T>;
 
     constructor() {
+        //tslint:disable:promise-must-complete
         this.promise = new Promise<T>((fulfill, _) => {
             this.callback = fulfill;
         });
+        //tslint:disable:promise-must-complete
     }
 }
 

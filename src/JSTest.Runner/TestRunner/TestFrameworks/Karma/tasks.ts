@@ -3,7 +3,9 @@ import * as fs from 'fs';
 import { ITaskSet } from './TaskController';
 import { NodePromise } from './PromiseAdaptors';
 
+//tslint:disable:prefer-type-cast
 export const tasks = {
+    //tslint:disable:no-function-expression
     testSuite: async function (configFile: any) {
         const config = await loadTests(configFile);
         //const config = ts.then((config) => config.ScriptTestOrchestrator);
@@ -26,13 +28,30 @@ export const tasks = {
     },
 
     cleanup: {
-        init: function (ctx) {
+        //tslint:disable:no-function-expression
+        init: function (ctx: any) {
             if (ctx.variables.cleanupTasks) {
+                //tslint:disable:no-invalid-this
                 this.dependencies = ctx.variables.cleanupTasks;
+            }
+        }
+    },
+
+    'default': {
+        dependencies: ['cleanup'],
+        //tslint:disable:no-function-expression
+        execute: function (ctx: any) {
+            if (ctx.variables.testSummary) {
+                ctx.logText('');
+                ctx.logText('Test Summary:');
+                for (const line of ctx.variables.testSummary) {
+                    ctx.logText(`  ${line}`);
+                }
             }
         }
     }
 } as ITaskSet;
+//tslint:disable:prefer-type-cast
 
 class Config {
     //tslint:disable:no-reserved-keywords
