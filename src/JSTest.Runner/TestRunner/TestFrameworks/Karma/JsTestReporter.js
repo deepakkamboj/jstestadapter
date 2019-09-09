@@ -154,9 +154,9 @@ var JsTestReporter = function (baseReporterDecorator, config, emitter, logger, h
         helper.mkdirIfNotExists(path.dirname(outputFile), function () {
             fs.writeFile(outputFile, xmlToOutput.end({pretty: true}), function (err) {
                 if (err) {
-                    log.warn('Cannot write TRX testRun\n\t' + err.message);
+                    log.warn('Cannot write test results for testRun\n\t' + err.message);
                 } else {
-                    log.debug('TRX results written to "%s".', outputFile);
+                    log.debug('Test results written to "%s".', outputFile);
                 }
             });
         });
@@ -203,24 +203,7 @@ var JsTestReporter = function (baseReporterDecorator, config, emitter, logger, h
 
         var startTime =  result.startTime;
         var endTime =  result.endTime;
-       // var resultTitle = result.title;
-        //var testFilePath = path.relative(path.dirname(configFilePath));
-        //var attachmentId = `${result.fullName}|spec${result.index}`;
-/*
-        handleSpecFound(fullyQualifiedName: string,
-            testCaseName: string,
-            sourceFile: string,
-            specObject: any,
-            fqnPostFix?: string,
-            attachmentId?: string);
-*/
         if (discovery) {
-            // jstestCallbacks.handleSpecFound(result.fullName,
-            //                                 result.title,
-            //                                 configFilePath,
-            //                                 undefined,
-            //                                 '::' + result.fullName + '::' + testFilePath,
-            //                                 attachmentId);
             jstestCallbacks.handleSpecFound(specName,
                                             unitTestName,
                                             configFilePath,
@@ -237,7 +220,6 @@ var JsTestReporter = function (baseReporterDecorator, config, emitter, logger, h
                                             new Date(endTime),
                                             codeBase,
                                             undefined); //attachmentId
-            //startTime += result.duration;
         }
         var unitTest = testDefinitions.ele('UnitTest')
             .att('name', unitTestName)
@@ -282,11 +264,7 @@ JsTestReporter.$inject = ['baseReporterDecorator', 'config.jstestReporter', 'emi
 // PUBLISH DI MODULE
 module.exports = {
     'reporter:jstest': ['type', JsTestReporter],
-    sayHelloInEnglish: function() {
-        return "HELLO";
-    },
     initializeJsTestReporter: function(callbacks) {
-        //return "HELLO";
         JsTestReporter.jstestCallbacks = callbacks;
         return callbacks;
     }

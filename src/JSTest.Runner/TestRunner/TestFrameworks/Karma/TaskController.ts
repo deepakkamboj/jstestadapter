@@ -173,7 +173,9 @@ export class TaskController implements ITaskControllerContext {
         this.logVerbose(`addTasksFromFile: ${JSON.stringify(filepath)}`);
         //tslint:disable:no-reserved-keywords
         //tslint:disable:no-require-imports
+        //tslint:disable:non-literal-require
         const module = require(fullpath);
+        //tslint:disable:non-literal-require
         //tslint:disable:no-require-imports
         //tslint:disable:no-reserved-keywords
         if (!module.tasks) {
@@ -379,16 +381,18 @@ function parseTaskInvocation(taskInvocation: TaskInvocation): ITaskInvocationWit
         // json serialized JSON objects of type ITaskInvocationWithArguments.
         if (taskInvocation[0] === '{') {
             // parse json object
+            //tslint:disable:prefer-type-cast
+            //tslint:disable:no-conditional-assignment
             taskInvocation = JSON.parse(taskInvocation) as ITaskInvocationWithArguments;
-        }
+            //tslint:disable:no-conditional-assignment
+            //tslint:disable:prefer-type-cast
+        } else if (match = taskInvocation.match(/^(.*)\[(.*)\]$/)) {
         // For convenience, simple invocations like {name: 'testSuite',
         // arguments: ['path/to/suite.js' ] } can instead be written
         // as the string 'testSuite[path/to/suite.js]'.
-        else if (match = taskInvocation.match(/^(.*)\[(.*)\]$/)) {
             taskInvocation = { name: match[1], arguments: match[2].split(',') };
-        }
-        // Default case - task with no arguments.
-        else {
+        } else {
+            // Default case - task with no arguments.
             taskInvocation = { name: taskInvocation, arguments: [] };
         }
     }

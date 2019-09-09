@@ -93,123 +93,33 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         //tslint:disable:no-require-imports
     }
 
-    private loadTestSuite(testSuiteFile: string, options: JSON) {
-        //tslint:disable:non-literal-require
-        const configProc = require(path.resolve(testSuiteFile));
-        //tslint:disable:non-literal-require
-        const config = new Config();
-        configProc(config);
-        this.rootPath = path.dirname(testSuiteFile);
-        this.name = testSuiteFile;
-        this.config = config;
-
-        KarmaTestFramework.configWhitelist.verifyObject(config, key => {
-                throw new Error(`Unsupported karma config parameter '${key}' in TestSuite '${name}'`);
-            });
-
-        this.parseBaseConfig(this.config.ScriptTestOrchestrator, this.rootPath);
-
-        //execute
-        let basePath = this.rootPath;
-
-        if (this.config.basePath) {
-            basePath = path.resolve(basePath, this.config.basePath);
-        }
-
-        const oneSecond = 1000;
-        const oneMinute = 60 * oneSecond;
-        this.karmaConfig = {
-            files: this.config.files.slice(),
-            frameworks: this.config.frameworks,
-            customClientContextFile: this.config.customClientContextFile,
-            customDebugFile: this.config.customDebugFile,
-            basePath: basePath,
-            baseUrl: this.config.baseUrl,
-            proxies: this.config.proxies,
-            preprocessors: this.config.preprocessors,
-            port: this.nextPort++,
-            autoWatch: true, //true
-            failOnEmptyTestSuite: true, //false
-            reporters: ['spec'],
-
-            // Note: Browser startup on cold lab machines is observed as taking
-            // significantly longer than the 10s default timeout for no activity, 2s
-            // for disconnect.
-            // Increasing browser timeout options to reduce test flakiness.
-            captureTimeout: 5 * oneMinute,
-            browserNoActivityTimeout: 10 * oneMinute,
-            browserDisconnectTimeout: 3 * oneMinute,
-            browserDisconnectTolerance: 2,
-            browserSocketTimeout: 30 * oneSecond,
-            plugins: ['karma-*'].concat(this.config.plugins || []),
-            client: this.config.client,
-
-            specReporter: {
-                suppressSkipped: this.skipCurrentSpec
-            },
-            logLevel:  this.karma.constants.LOG_WARN
-        };
-
-        //tslint:disable:no-string-literal
-        const testResultsFolder = options['testResultsPath'];
-        const debug = options['debug'] === 'true' ? true : false;
-        const browsers = options['browsers'];
-        //tslint:disable:no-string-literal
-
-        if (debug) {
-            this.karmaConfig.singleRun = false;
-            this.karmaConfig.useIframe = false;
-        } else {
-            this.karmaConfig.singleRun = true;
-        }
-        if (browsers) {
-            this.karmaConfig.browsers = browsers;
-        } else {
-            this.karmaConfig.browsers = ['ChromeHeadless'];
-        }
-
-        const testResultsPath = path.resolve(__dirname, testResultsFolder);
-
-        if (!fs.existsSync(testResultsPath)) {
-            fs.mkdirSync(testResultsPath);
-        }
-
-        if (testResultsFolder) {
-            const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
-
-            //KarmaReporter
-            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
-            this.karmaConfig.reporters.push('karma');
-            this.karmaConfig.karmaReporter = {
-                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
-                shortTestName: false,
-                discovery: this.discoveryMode,
-                configFilePath: this.config.files[0]//this.sources[0]
-            };
-        }
-    }
-
     public startExecutionWithSources(sources: Array<string>, options: JSON): void {
         this.sources = sources;
         const karmaServer = this.karma.Server;
-
-        sources.forEach(source => {
-            this.loadTestSuite(source, options);
-        });
+        const powerApps = 'isPowerApps';
+        const isPowerApps = options[powerApps] === 'true' ? true : false;
 
         //PowerApps sepceifc code
-        const controller = new TaskController();
-        // Load the default tasks. These tasks are always available, even without importing.
-        controller.addTasksFromFile(path.resolve(__dirname, './tasks.js'));
-        //let tasksToRun: string[] = [];
-        //tasksToRun.push('testSuite[' + this.name + ']');
-        //let success = 1;
-        try {
-            controller.execute('testSuite[' + this.name + ']');
-            //success = 0;
-        } catch (err) {
-            EqtTrace.error(`Error in test runner`, err);
-            EqtTrace.info('Some tasks failed.');
+        if (isPowerApps) {
+            sources.forEach(source => {
+                this.loadTestSuiteForPowerApps(source, options);
+            });
+
+            const controller = new TaskController();
+            // Load the default tasks. These tasks are always available, even without importing.
+            controller.addTasksFromFile(path.resolve(__dirname, './tasks.js'));
+            //let tasksToRun: string[] = [];
+            //tasksToRun.push('testSuite[' + this.name + ']');
+            //let success = 1;
+            try {
+                controller.execute('testSuite[' + this.name + ']');
+                //success = 0;
+            } catch (err) {
+                EqtTrace.error(`Error in test runner`, err);
+                EqtTrace.info('Some tasks failed.');
+            }
+        } else {
+            this.loadTestSuite(sources, options);
         }
 
         EqtTrace.info(`KarmaTestFramework: starting with options: ${JSON.stringify(options)}`);
@@ -255,6 +165,160 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         }
 
         this.handleSessionDone();
+    }
+    private loadTestSuiteForPowerApps(testSuiteFile: string, options: JSON) {
+        //tslint:disable:no-string-literal
+        const testResultsFolder = options['testResultsPath'];
+        const debug = options['debug'] === 'true' ? true : false;
+        const browsers = options['browsers'];
+        EqtTrace.info(`KarmaTestFramework: Running tests for PowerApps.`);
+
+        //tslint:disable:no-string-literal
+        //tslint:disable:non-literal-require
+        const config = new Config();
+        const configProc = require(path.resolve(testSuiteFile));
+        //tslint:disable:non-literal-require
+        configProc(config);
+        this.config = config;
+        this.rootPath = path.dirname(testSuiteFile);
+        this.name = testSuiteFile;
+
+        KarmaTestFramework.configWhitelist.verifyObject(config, key => {
+            throw new Error(`Unsupported karma config parameter '${key}' in TestSuite '${name}'`);
+        });
+
+        this.parseBaseConfig(this.config.ScriptTestOrchestrator, this.rootPath);
+        this.rootPath = path.dirname(testSuiteFile);
+        this.name = testSuiteFile;
+        //Building Karma Config file
+        let basePath = this.rootPath;
+
+        if (this.config.basePath) {
+            basePath = path.resolve(basePath, this.config.basePath);
+        }
+
+        const oneSecond = 1000;
+        const oneMinute = 60 * oneSecond;
+        this.karmaConfig = {
+            files: this.config.files.slice(),
+            frameworks: this.config.frameworks,
+            customClientContextFile: this.config.customClientContextFile,
+            customDebugFile: this.config.customDebugFile,
+            basePath: basePath,
+            baseUrl: this.config.baseUrl,
+            proxies: this.config.proxies,
+            preprocessors: this.config.preprocessors,
+            port: this.nextPort++,
+            autoWatch: true, //true
+            failOnEmptyTestSuite: true, //false
+            reporters: ['spec'],
+
+            // Note: Browser startup on cold lab machines is observed as taking
+            // significantly longer than the 10s default timeout for no activity, 2s
+            // for disconnect.
+            // Increasing browser timeout options to reduce test flakiness.
+            captureTimeout: 5 * oneMinute,
+            browserNoActivityTimeout: 10 * oneMinute,
+            browserDisconnectTimeout: 3 * oneMinute,
+            browserDisconnectTolerance: 2,
+            browserSocketTimeout: 30 * oneSecond,
+            plugins: ['karma-*'].concat(this.config.plugins || []),
+            client: this.config.client,
+
+            specReporter: {
+                suppressSkipped: this.skipCurrentSpec
+            },
+            logLevel:  this.karma.constants.LOG_WARN
+        };
+
+        if (debug) {
+            this.karmaConfig.singleRun = false;
+            this.karmaConfig.useIframe = false;
+        } else {
+            this.karmaConfig.singleRun = true;
+        }
+        if (browsers) {
+            this.karmaConfig.browsers = browsers;
+        } else {
+            this.karmaConfig.browsers = ['ChromeHeadless'];
+        }
+
+        const testResultsPath = path.resolve(__dirname, testResultsFolder);
+
+        if (!fs.existsSync(testResultsPath)) {
+            fs.mkdirSync(testResultsPath);
+        }
+
+        if (testResultsFolder) {
+            const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
+
+            //KarmaReporter
+            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
+            this.karmaConfig.reporters.push('karma');
+            this.karmaConfig.karmaReporter = {
+                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
+                shortTestName: false,
+                discovery: this.discoveryMode,
+                configFilePath: this.config.files[0]//this.sources[0]
+            };
+        }
+    }
+
+    private loadTestSuite(sources: Array<string>, options: JSON) {
+        //tslint:disable:no-string-literal
+        const testResultsFolder = options['testResultsPath'];
+        const debug = options['debug'] === 'true' ? true : false;
+        const frameworks = options['frameworks'];
+        const browsers = options['browsers'];
+        this.sources = sources;
+
+        //Building Karma Config file
+        this.karmaConfig = {
+            files: this.sources,
+            frameworks: frameworks,
+            basePath: '',
+            port: this.nextPort++,
+            autoWatch: true,
+            failOnEmptyTestSuite: false,
+            reporters: ['spec'],
+            specReporter: {
+                suppressSkipped: true
+            },
+            plugins: ['karma-*'],
+            logLevel:  this.karma.constants.LOG_WARN
+        };
+
+        if (debug) {
+            this.karmaConfig.singleRun = false;
+            this.karmaConfig.useIframe = false;
+        } else {
+            this.karmaConfig.singleRun = true;
+        }
+        if (browsers) {
+            this.karmaConfig.browsers = browsers;
+        } else {
+            this.karmaConfig.browsers = ['ChromeHeadless'];
+        }
+
+        const testResultsPath = path.resolve(__dirname, testResultsFolder);
+
+        if (!fs.existsSync(testResultsPath)) {
+            fs.mkdirSync(testResultsPath);
+        }
+
+        if (testResultsFolder) {
+            const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
+
+            //KarmaReporter
+            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
+            this.karmaConfig.reporters.push('karma');
+            this.karmaConfig.karmaReporter = {
+                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
+                shortTestName: false,
+                discovery: this.discoveryMode,
+                configFilePath: this.sources[0]
+            };
+        }
     }
 
     private handleReporterEvents(reporterEvent: ReporterEvent, args: any) {
