@@ -52,6 +52,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
     private karmaConfig: any;
     private karmaReporter: any;
     private discoveryMode: boolean = false;
+    private karmaServer: any;
 
     //PowerApps Specific Requirements
     private baseConfig: any;
@@ -104,13 +105,9 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             sources.forEach(source => {
                 this.loadTestSuiteForPowerApps(source, options);
             });
-
             const controller = new TaskController();
             // Load the default tasks. These tasks are always available, even without importing.
             controller.addTasksFromFile(path.resolve(__dirname, './tasks.js'));
-            //let tasksToRun: string[] = [];
-            //tasksToRun.push('testSuite[' + this.name + ']');
-            //let success = 1;
             try {
                 controller.execute('testSuite[' + this.name + ']');
                 //success = 0;
@@ -125,7 +122,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         EqtTrace.info(`KarmaTestFramework: starting with options: ${JSON.stringify(options)}`);
         EqtTrace.info(`KarmaTestFramework: Karma Server starting with config: ${JSON.stringify(this.karmaConfig)}`);
         EqtTrace.info('KarmaTestFramework: Karma Server started at ' + this.karmaConfig.port + ' ...');
-        const server = new karmaServer(this.karmaConfig, (exitCode: any) => {
+        const server = this.karmaServer = new karmaServer(this.karmaConfig, (exitCode: any) => {
             if (exitCode === 0 || exitCode === null || exitCode === 'undefined') {
                 EqtTrace.info('KarmaTestFramework: Karma Server exited with code: ' + exitCode + ' ...');
             } else {
@@ -141,10 +138,10 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         this.initializeReporter(server);
 
         server.start()
-        .then(() =>   this.karma.stopper.stop({port: this.karmaConfig.port}))
-        .then(() => EqtTrace.info('KarmaTestFramework: Karma server exited gracefully'));
-
-        this.handleSessionDone();
+        .then((...args: any[]) => {
+            console.log(args);
+            EqtTrace.info('KarmaTestFramework: Karma server started');
+        });
     }
 
     public startDiscovery(sources: Array<string>): void {
@@ -172,7 +169,6 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         const debug = options['debug'] === 'true' ? true : false;
         const browsers = options['browsers'];
         EqtTrace.info(`KarmaTestFramework: Running tests for PowerApps.`);
-
         //tslint:disable:no-string-literal
         //tslint:disable:non-literal-require
         const config = new Config();
@@ -190,13 +186,10 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         this.parseBaseConfig(this.config.ScriptTestOrchestrator, this.rootPath);
         this.rootPath = path.dirname(testSuiteFile);
         this.name = testSuiteFile;
-        //Building Karma Config file
         let basePath = this.rootPath;
-
         if (this.config.basePath) {
             basePath = path.resolve(basePath, this.config.basePath);
         }
-
         const oneSecond = 1000;
         const oneMinute = 60 * oneSecond;
         this.karmaConfig = {
@@ -212,10 +205,8 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             autoWatch: true, //true
             failOnEmptyTestSuite: true, //false
             reporters: ['spec'],
-
             // Note: Browser startup on cold lab machines is observed as taking
-            // significantly longer than the 10s default timeout for no activity, 2s
-            // for disconnect.
+            // significantly longer than the 10s default timeout for no activity, 2sm for disconnect.
             // Increasing browser timeout options to reduce test flakiness.
             captureTimeout: 5 * oneMinute,
             browserNoActivityTimeout: 10 * oneMinute,
@@ -223,8 +214,14 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             browserDisconnectTolerance: 2,
             browserSocketTimeout: 30 * oneSecond,
             plugins: ['karma-*'].concat(this.config.plugins || []),
-            client: this.config.client,
-
+            //client: this.config.client,
+            client: {
+                clearContext: false,
+                qunit: {
+                showUI: true,
+                testTimeout: 5000
+                }
+            },
             specReporter: {
                 suppressSkipped: this.skipCurrentSpec
             },
@@ -253,9 +250,9 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
 
             //KarmaReporter
-            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
-            this.karmaConfig.reporters.push('karma');
-            this.karmaConfig.karmaReporter = {
+            this.karmaConfig.plugins.push(require.resolve('./JsTestReporter.js'));
+            this.karmaConfig.reporters.push('jstest');
+            this.karmaConfig.jstestReporter = {
                 outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
                 shortTestName: false,
                 discovery: this.discoveryMode,
@@ -366,6 +363,11 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 //EqtTrace.info(`KarmaTestFramework: Run complete, exiting with code: ${args.results.exitCode}`);
                // this.handleSessionDone();
                 //this.handle
+                this.karmaServer.stop({port: this.karmaConfig.port}).then((...args: any[]) =>{
+                    console.log(args);
+                });
+
+                this.handleSessionDone();
                 break;
             case ReporterEvent.Error:
                     // this.karma.stopper.stop({
