@@ -139,7 +139,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
 
         server.start()
         .then((...args: any[]) => {
-            console.log(args);
+            console.log('KarmaTestFramework: Server started. Printing Args: ' + args);
             EqtTrace.info('KarmaTestFramework: Karma server started');
         });
     }
@@ -218,8 +218,8 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             client: {
                 clearContext: false,
                 qunit: {
-                showUI: true,
-                testTimeout: 5000
+                    showUI: true,
+                    testTimeout: 5000
                 }
             },
             specReporter: {
@@ -250,9 +250,9 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
 
             //KarmaReporter
-            this.karmaConfig.plugins.push(require.resolve('./JsTestReporter.js'));
-            this.karmaConfig.reporters.push('jstest');
-            this.karmaConfig.jstestReporter = {
+            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
+            this.karmaConfig.reporters.push('karma');
+            this.karmaConfig.karmaReporter = {
                 outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
                 shortTestName: false,
                 discovery: this.discoveryMode,
@@ -268,14 +268,15 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         const frameworks = options['frameworks'];
         const browsers = options['browsers'];
         this.sources = sources;
-
+        //sources.push('E:\jstestadapter\test\JSTest.AcceptanceTests\Karma\test.2.js');
+        //E:jstestadapter\testJSTest.AcceptanceTestsKarma\test.2.js
         //Building Karma Config file
         this.karmaConfig = {
             files: this.sources,
             frameworks: frameworks,
             basePath: '',
             port: this.nextPort++,
-            autoWatch: true,
+            autoWatch: false,
             failOnEmptyTestSuite: false,
             reporters: ['spec'],
             specReporter: {
@@ -332,6 +333,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 break;
 
             case ReporterEvent.BrowserStart:
+                console.log('KarmaTestFramework: Browser Started. Printing Args: ' + args);
                // this.handleSpecStarted(args.fullName, args.description, this.sources[0], null);
                 break;
 
@@ -342,7 +344,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 break;
 
             case ReporterEvent.BrowserComplete:
-
+                console.log('KarmaTestFramework: Browser Completed. Printing Args: ' + args);
                 break;
 
             case ReporterEvent.RunStarted:
@@ -363,11 +365,19 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 //EqtTrace.info(`KarmaTestFramework: Run complete, exiting with code: ${args.results.exitCode}`);
                // this.handleSessionDone();
                 //this.handle
-                this.karmaServer.stop({port: this.karmaConfig.port}).then((...args: any[]) =>{
+              /*
+                this.karmaServer.stop({
+                    port: this.karmaConfig.port
+                })
+                .then((...args: any[]) => {
                     console.log(args);
                 });
 
                 this.handleSessionDone();
+                */
+
+                const proc = require('child_process').spawn('node');
+                proc.kill('SIGINT');
                 break;
             case ReporterEvent.Error:
                     // this.karma.stopper.stop({

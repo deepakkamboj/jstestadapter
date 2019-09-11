@@ -127,9 +127,9 @@ var KarmaReporter = function(baseReporterDecorator, config, emitter, logger, hel
         helper.mkdirIfNotExists(path.dirname(outputFile), function () {
             fs.writeFile(outputFile, xmlToOutput.end({pretty: true}), function (err) {
                 if (err) {
-                    log.warn('Cannot write TRX testRun\n\t' + err.message);
+                    log.warn('Cannot write results for testRun\n\t' + err.message);
                 } else {
-                    log.debug('TRX results written to "%s".', outputFile);
+                    log.debug('Test results written to "%s".', outputFile);
                 }
             });
         });
@@ -265,9 +265,9 @@ var KarmaReporter = function(baseReporterDecorator, config, emitter, logger, hel
 
        for (let i = 0; i < result.log.length; i++) {
            const expectation = result.log[i];
-
+           const message = result.suite[i];
            var failedExpectation = {
-               Message: result.assertionErrors[i].message,
+               Message: formatError(message),
                StackTrace: formatError(expectation)
            };
            failedExpectations.push(failedExpectation);

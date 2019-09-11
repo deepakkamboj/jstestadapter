@@ -1,5 +1,5 @@
 // Tests are hierarchical. Here we define a test suite for our calculator.
-describe('Calculator Tests', function() {
+describe('Test Suite # 2: Calculator Tests', function() {
 
 	var calc = {
 		add: function(i, j) {
