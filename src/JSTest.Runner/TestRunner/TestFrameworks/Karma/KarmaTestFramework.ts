@@ -6,9 +6,7 @@ import { EqtTrace } from '../../../ObjectModel/EqtTrace';
 import { KarmaCallbacks } from './KarmaCallbacks';
 import { Whitelist } from './Whitelist';
 import { TaskController } from './TaskController';
-import * as os from 'os';
 import * as path from 'path';
-import * as fs from 'fs';
 
 enum ReporterEvent {
     BrowserRegister,
@@ -25,12 +23,6 @@ enum ReporterEvent {
 class Config {
     //tslint:disable:no-reserved-keywords
     public set(vars: any) {
-        /*
-        for (const key in vars) {
-            this[key] = vars[key];
-        }
-        */
-
         for (const key of Object.keys(vars)) {
             this[key] = vars[key];
         }
@@ -53,6 +45,8 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
     private karmaReporter: any;
     private discoveryMode: boolean = false;
     private karmaServer: any;
+    private karmaArgv: any;
+    private controller: any = new TaskController();
 
     //PowerApps Specific Requirements
     private baseConfig: any;
@@ -92,36 +86,63 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
              handleErrorMessage: this.handleErrorMessage.bind(this)
          });
         //tslint:disable:no-require-imports
+        this.karmaArgv = new Object();
     }
 
     public startExecutionWithSources(sources: Array<string>, options: JSON): void {
+        EqtTrace.info('KarmaTestFramework: Start test execution with Sources');
+        this.sources = sources;
+        try {
+             this.runKarmaTests(sources, options);
+        } catch (err) {
+            this.handleErrorMessage(err.message, err.stack);
+        }
+    }
+
+    public startDiscovery(sources: Array<string>): void {
+        EqtTrace.info('KarmaTestFramework: Start test discovery');
+        const options: JSON = null;
+        this.sources = sources;
+        this.discoveryMode = true;
+        try {
+            this.runKarmaTests(sources, options);
+       } catch (err) {
+           this.handleErrorMessage(err.message, err.stack);
+       }
+    }
+
+    private runKarmaTests(sources: Array<string>, options: JSON) {
+        let isPowerApps: boolean = false;
         this.sources = sources;
         const karmaServer = this.karma.Server;
-        const powerApps = 'isPowerApps';
-        const isPowerApps = options[powerApps] === 'true' ? true : false;
-
-        //PowerApps sepceifc code
+        const karmaArgv = this.karmaArgv;
+        if (options instanceof Object) {
+            Object.keys(options).forEach(key => {
+                karmaArgv[key] = options[key];
+            });
+        }
+        if (karmaArgv.isPowerApps) {
+            isPowerApps = karmaArgv.isPowerApps === 'true' ? true : false;
+        }
         if (isPowerApps) {
             sources.forEach(source => {
-                this.loadTestSuiteForPowerApps(source, options);
+                this.loadTestSuiteForPowerApps(source);
             });
-            const controller = new TaskController();
-            // Load the default tasks. These tasks are always available, even without importing.
-            controller.addTasksFromFile(path.resolve(__dirname, './tasks.js'));
-            try {
-                controller.execute('testSuite[' + this.name + ']');
-                //success = 0;
-            } catch (err) {
-                EqtTrace.error(`Error in test runner`, err);
-                EqtTrace.info('Some tasks failed.');
-            }
+            this.addKarmaReporter(karmaArgv, this.config.files[0]);
+
         } else {
-            this.loadTestSuite(sources, options);
+            // default settings
+            if (!karmaArgv.frameworks) {
+                karmaArgv.frameworks = ['mocha', 'chai'];
+            }
+            this.loadTestSuite(sources, karmaArgv.frameworks);
+            this.addKarmaReporter(karmaArgv, this.sources[0]);
         }
 
         EqtTrace.info(`KarmaTestFramework: starting with options: ${JSON.stringify(options)}`);
         EqtTrace.info(`KarmaTestFramework: Karma Server starting with config: ${JSON.stringify(this.karmaConfig)}`);
-        EqtTrace.info('KarmaTestFramework: Karma Server started at ' + this.karmaConfig.port + ' ...');
+        EqtTrace.info(`KarmaTestFramework: Karma Server started with:
+        frameworks: ${this.karmaConfig.frameworks.join(', ')}   port: ${this.karmaConfig.port} ...`);
         const server = this.karmaServer = new karmaServer(this.karmaConfig, (exitCode: any) => {
             if (exitCode === 0 || exitCode === null || exitCode === 'undefined') {
                 EqtTrace.info('KarmaTestFramework: Karma Server exited with code: ' + exitCode + ' ...');
@@ -129,9 +150,6 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 this.handleErrorMessage('KarmaTestFramework: Karma Server exited with code: ' + exitCode, exitCode);
             }
             this.handleSessionDone();
-            //process.exit(-1);
-           // let env: Environment;
-           // env.exit(1);
         }
         );
 
@@ -139,39 +157,14 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
 
         server.start()
         .then((...args: any[]) => {
-            console.log('KarmaTestFramework: Server started. Printing Args: ' + args);
-            EqtTrace.info('KarmaTestFramework: Karma server started');
+            EqtTrace.info('KarmaTestFramework: Karma server started. Printing Args: ' + args);
         });
     }
 
-    public startDiscovery(sources: Array<string>): void {
-        this.sources = sources;
-        this.discoveryMode = true;
-        this.discoverTestsAsync(sources);
-    }
-
-    private async discoverTestsAsync(sources: Array<string>) {
-        if (sources) {
-            for (let i = 0; i < sources.length; i++) {
-                try {
-                   // await this.runTestAsync(sources[i], null, null, null, true);
-                } catch (err) {
-                    this.handleErrorMessage(err.message, err.stack);
-                }
-            }
-        }
-
-        this.handleSessionDone();
-    }
-    private loadTestSuiteForPowerApps(testSuiteFile: string, options: JSON) {
-        //tslint:disable:no-string-literal
-        const testResultsFolder = options['testResultsPath'];
-        const debug = options['debug'] === 'true' ? true : false;
-        const browsers = options['browsers'];
+    private loadTestSuiteForPowerApps(testSuiteFile: string) {
         EqtTrace.info(`KarmaTestFramework: Running tests for PowerApps.`);
-        //tslint:disable:no-string-literal
-        //tslint:disable:non-literal-require
         const config = new Config();
+        //tslint:disable:non-literal-require
         const configProc = require(path.resolve(testSuiteFile));
         //tslint:disable:non-literal-require
         configProc(config);
@@ -186,6 +179,39 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
         this.parseBaseConfig(this.config.ScriptTestOrchestrator, this.rootPath);
         this.rootPath = path.dirname(testSuiteFile);
         this.name = testSuiteFile;
+
+        this.generateKarmaConfigForPowerApps();
+
+        // Load the default tasks. These tasks are always available, even without importing.
+        this.controller.addTasksFromFile(path.resolve(__dirname, './tasks.js'));
+        try {
+            this.controller.execute('testSuite[' + this.name + ']');
+        } catch (err) {
+            this.handleErrorMessage('Error in Task Runner: ' + err.message, err.stack);
+            EqtTrace.info('Some tasks failed.');
+        }
+    }
+
+    private cleanupTasks() {
+        if (this.karmaArgv.isPowerApps) {
+            const isPowerApps = this.karmaArgv.isPowerApps === 'true' ? true : false;
+            if (isPowerApps) {
+                try {
+                    if (this.controller.variables.callCleanup) {
+                        this.controller.execute('cleanup');
+                    }
+                } catch (err) {
+                    this.handleErrorMessage('Error in Task Runner: ' + err.message, err.stack);
+                    EqtTrace.info('Some tasks failed.');
+                }
+                finally {
+                    this.controller = null;
+                }
+            }
+        }
+    }
+
+    private generateKarmaConfigForPowerApps() {
         let basePath = this.rootPath;
         if (this.config.basePath) {
             basePath = path.resolve(basePath, this.config.basePath);
@@ -214,63 +240,41 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             browserDisconnectTolerance: 2,
             browserSocketTimeout: 30 * oneSecond,
             plugins: ['karma-*'].concat(this.config.plugins || []),
-            //client: this.config.client,
-            client: {
-                clearContext: false,
-                qunit: {
-                    showUI: true,
-                    testTimeout: 5000
-                }
-            },
+            client: this.config.client,
             specReporter: {
                 suppressSkipped: this.skipCurrentSpec
             },
             logLevel:  this.karma.constants.LOG_WARN
         };
+    }
 
+    private addKarmaReporter(options: any, configFilePath: string) {
+        EqtTrace.info(`KarmaTestFramework: Add Karma Reporter`);
+        const debug = options.debug === 'true' ? true : false;
         if (debug) {
             this.karmaConfig.singleRun = false;
             this.karmaConfig.useIframe = false;
         } else {
             this.karmaConfig.singleRun = true;
         }
-        if (browsers) {
-            this.karmaConfig.browsers = browsers;
+        if (options.browsers) {
+            this.karmaConfig.browsers = options.browsers;
         } else {
             this.karmaConfig.browsers = ['ChromeHeadless'];
         }
 
-        const testResultsPath = path.resolve(__dirname, testResultsFolder);
-
-        if (!fs.existsSync(testResultsPath)) {
-            fs.mkdirSync(testResultsPath);
-        }
-
-        if (testResultsFolder) {
-            const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
-
-            //KarmaReporter
-            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
-            this.karmaConfig.reporters.push('karma');
-            this.karmaConfig.karmaReporter = {
-                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
-                shortTestName: false,
-                discovery: this.discoveryMode,
-                configFilePath: this.config.files[0]//this.sources[0]
-            };
-        }
+        this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
+        this.karmaConfig.reporters.push('karma');
+        this.karmaConfig.karmaReporter = {
+            shortTestName: false,
+            discovery: this.discoveryMode,
+            configFilePath: configFilePath
+        };
     }
 
-    private loadTestSuite(sources: Array<string>, options: JSON) {
-        //tslint:disable:no-string-literal
-        const testResultsFolder = options['testResultsPath'];
-        const debug = options['debug'] === 'true' ? true : false;
-        const frameworks = options['frameworks'];
-        const browsers = options['browsers'];
+    private loadTestSuite(sources: Array<string>, frameworks: Array<string>) {
+        EqtTrace.info(`KarmaTestFramework: Load Test Suites`);
         this.sources = sources;
-        //sources.push('E:\jstestadapter\test\JSTest.AcceptanceTests\Karma\test.2.js');
-        //E:jstestadapter\testJSTest.AcceptanceTestsKarma\test.2.js
-        //Building Karma Config file
         this.karmaConfig = {
             files: this.sources,
             frameworks: frameworks,
@@ -285,38 +289,6 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
             plugins: ['karma-*'],
             logLevel:  this.karma.constants.LOG_WARN
         };
-
-        if (debug) {
-            this.karmaConfig.singleRun = false;
-            this.karmaConfig.useIframe = false;
-        } else {
-            this.karmaConfig.singleRun = true;
-        }
-        if (browsers) {
-            this.karmaConfig.browsers = browsers;
-        } else {
-            this.karmaConfig.browsers = ['ChromeHeadless'];
-        }
-
-        const testResultsPath = path.resolve(__dirname, testResultsFolder);
-
-        if (!fs.existsSync(testResultsPath)) {
-            fs.mkdirSync(testResultsPath);
-        }
-
-        if (testResultsFolder) {
-            const testResultsFileNameSuffix = os.hostname() + '-' + os.userInfo().username + '-' + (new Date()).getTime();
-
-            //KarmaReporter
-            this.karmaConfig.plugins.push(require.resolve('./KarmaReporter.js'));
-            this.karmaConfig.reporters.push('karma');
-            this.karmaConfig.karmaReporter = {
-                outputFile: path.resolve(testResultsPath, 'karma-test-results-' + testResultsFileNameSuffix + '.trx'),
-                shortTestName: false,
-                discovery: this.discoveryMode,
-                configFilePath: this.sources[0]
-            };
-        }
     }
 
     private handleReporterEvents(reporterEvent: ReporterEvent, args: any) {
@@ -333,8 +305,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 break;
 
             case ReporterEvent.BrowserStart:
-                console.log('KarmaTestFramework: Browser Started. Printing Args: ' + args);
-               // this.handleSpecStarted(args.fullName, args.description, this.sources[0], null);
+                EqtTrace.info('KarmaTestFramework: Browser Started. Printing Args: ' + args);
                 break;
 
             case ReporterEvent.BrowsersChange:
@@ -344,7 +315,7 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 break;
 
             case ReporterEvent.BrowserComplete:
-                console.log('KarmaTestFramework: Browser Completed. Printing Args: ' + args);
+                EqtTrace.info('KarmaTestFramework: Browser Completed. Printing Args: ' + args);
                 break;
 
             case ReporterEvent.RunStarted:
@@ -352,40 +323,12 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
                 break;
 
             case ReporterEvent.RunCompleted:
-                /*
-                const testResults = args.results;
-                if (testResults.length === 0) {
-
-                }
-                */
-                // this.karma.stopper.stop({
-                //     port: this.karmaConfig.port
-                // });
-                //this.handleSessionDone();
-                //EqtTrace.info(`KarmaTestFramework: Run complete, exiting with code: ${args.results.exitCode}`);
-               // this.handleSessionDone();
-                //this.handle
-              /*
-                this.karmaServer.stop({
-                    port: this.karmaConfig.port
-                })
-                .then((...args: any[]) => {
-                    console.log(args);
-                });
-
-                this.handleSessionDone();
-                */
-
-                const proc = require('child_process').spawn('node');
-                proc.kill('SIGINT');
+                EqtTrace.info('KarmaTestFramework: Run Completed. Printing Args: ' + args);
+                this.cleanupTasks();
                 break;
             case ReporterEvent.Error:
-                    // this.karma.stopper.stop({
-                    //     port: this.karmaConfig.port
-                    // });
-                    //this.handleSessionDone();
-                    //EqtTrace.info(`KarmaTestFramework: Run complete, exiting with code: ${args.results.exitCode}`);
-                    break;
+                EqtTrace.info('KarmaTestFramework: Run Completed. Printing Args: ' + args);
+                break;
         }
     }
 
@@ -394,10 +337,11 @@ export class KarmaTestFramework extends BaseTestFramework implements ITestFramew
     }
 
     private reporterRunCompleteHandler() {
-        // do nothing
+        EqtTrace.info('KarmaTestFramework: Run Completed.');
     }
 
     private initializeReporter(server: any) {
+        EqtTrace.info('KarmaTestFramework: Initialize Reporter.');
         server.on('browser_register', (args) => { this.handleReporterEvents(ReporterEvent.BrowserRegister, args); });
         server.on('browser_error', (args) => { this.handleReporterEvents(ReporterEvent.BrowserError, args); });
         server.on('browser_start', (args) => { this.handleReporterEvents(ReporterEvent.BrowserStart, args); });

@@ -15,7 +15,8 @@ module.exports = function(config) {
 
         // list of files / patterns to load in the browser
         files: [
-            "suite3.js"
+            "suite3.js",
+			"suite4.js"
         ]
     });
 }

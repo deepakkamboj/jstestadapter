@@ -41,7 +41,7 @@ namespace JSTest.AcceptanceTests
         #region Protected Variables
 
         protected abstract string[] ContainerExtension { get; }
-        
+
         protected ExpectedOutput ExpectedOutput { get; set; } = new ExpectedOutput(
             new List<string> {
                 "test case a1",
@@ -248,8 +248,8 @@ namespace JSTest.AcceptanceTests
         {
             Directory.CreateDirectory(testRepoPath);
             BaseFrameworkTest.InstallNpmPackage(BaseFrameworkTest.jstestPackage);
+             BaseFrameworkTest.InstallNpmPackage("jstestcontext", "*");
         }
-        
         #endregion
 
         #region TestMethods

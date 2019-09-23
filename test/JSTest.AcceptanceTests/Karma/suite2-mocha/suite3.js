@@ -2,8 +2,8 @@
 //! Copyright (C) Microsoft Corporation.  All rights reserved.
 //!
 
-describe("test suite three", function () {
-    it('calls a hello world server', function () {
+describe("Test Suite # 4: Mocha Server Tests", function () {
+    it('Test Case # 1: calls a hello world server', function () {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", "http://localhost:3000/", false);
         xhr.send();
@@ -11,7 +11,7 @@ describe("test suite three", function () {
         expect(xhr.responseText).to.equal("Hello World");
     });
 
-    it('calls a hello world server with a name', function () {
+    it('Test Case # 2: calls a hello world server with a name', function () {
         var xhr = new XMLHttpRequest();
         xhr.open("GET", "http://localhost:3000/name/Javascript/", false);
         xhr.send();
@@ -20,7 +20,7 @@ describe("test suite three", function () {
     });
 
     describe("nested group of tests", function () {
-        it("nested group test case", function () {
+        it("Test Case # 3: nested group test case", function () {
             expect(1).to.equal(1);
         });
     });
