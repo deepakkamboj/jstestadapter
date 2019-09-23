@@ -5,11 +5,18 @@ module.exports = function(config) {
 
         // frameworks to use
         // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-        frameworks: ["qunit"],
+        frameworks: [ "mocha", "chai" ],
+
+        // ScriptTestOrchestrator dependencies:
+        ScriptTestOrchestrator: {
+            dependencies: [ "exampleServer" ],
+            modules: [ "./ExampleServer.js" ]
+        },
 
         // list of files / patterns to load in the browser
         files: [
-            "suite1.js"
+            "suite3.js",
+			"suite4.js"
         ]
     });
 }

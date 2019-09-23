@@ -3,13 +3,12 @@
         <TestFramework>karma</TestFramework>
         <TestFrameworkConfigJson>{
             "timeout": 60000,
-            "testResultsPath": "testresults",
             "debug" : "false",
             "isPowerApps" : "false",
-            "frameworks": ["qunit"],
-            "browsers": ["Chrome", "PhantomJS"]
+            "frameworks": ["mocha", "chai"],
+            "browsers": ["Chrome"]
         }</TestFrameworkConfigJson>
-        <DebugLogs>true</DebugLogs>
-        <DebugFilePath>e:\jstestadapter</DebugFilePath>
+        <DebugLogs>false</DebugLogs>
+        <DebugFilePath></DebugFilePath>
     </JSTest>
 </RunSettings>

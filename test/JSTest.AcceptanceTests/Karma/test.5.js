@@ -1,4 +1,4 @@
-QUnit.module("Qunit test suite one");
+QUnit.module("QUnit Test Suite # 1");
 
 QUnit.test('one alpha', function (assert) {
     assert.ok(1 + 1 == 2, "1 + 1 == 2");

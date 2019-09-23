@@ -1,5 +1,5 @@
 //const assert = require('assert');
-describe('Calculator Tests 2', function() {
+describe('Test Suite # 3: Calculator Tests 2', function() {
 	var Calculator = {
 		sum: function(p1, p2)
 		{

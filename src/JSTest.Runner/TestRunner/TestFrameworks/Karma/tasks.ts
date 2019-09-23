@@ -21,6 +21,9 @@ export const tasks = {
                         ctx.logVerbose(`Loading module ${modPath} at request of test suite ${configFile}`);
                         ctx.addTasksFromFile(modPath);
                     }
+                    ctx.variables.callCleanup = true;
+                } else {
+                    ctx.variables.callCleanup = false;
                 }
             },
             dependencies: config.ScriptTestOrchestrator && config.ScriptTestOrchestrator.dependencies || []
@@ -30,23 +33,9 @@ export const tasks = {
     cleanup: {
         //tslint:disable:no-function-expression
         init: function (ctx: any) {
-            if (ctx.variables.cleanupTasks) {
+            if (ctx.variables.cleanupTasks &&  ctx.variables.callCleanup) {
                 //tslint:disable:no-invalid-this
                 this.dependencies = ctx.variables.cleanupTasks;
-            }
-        }
-    },
-
-    'default': {
-        dependencies: ['cleanup'],
-        //tslint:disable:no-function-expression
-        execute: function (ctx: any) {
-            if (ctx.variables.testSummary) {
-                ctx.logText('');
-                ctx.logText('Test Summary:');
-                for (const line of ctx.variables.testSummary) {
-                    ctx.logText(`  ${line}`);
-                }
             }
         }
     }

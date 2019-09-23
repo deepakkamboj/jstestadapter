@@ -133,3 +133,5 @@ scripts/*
 !scripts/*.ps1
 !scripts/*.sh
 !scripts/key.snk
+
+jstest*.log
