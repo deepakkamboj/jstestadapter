@@ -1,13 +1,12 @@
 {
   "name": "jstestadapter",
-  "version": "1.2.5",
-  "description": "JavaScript test adapter for VSTest",
+  "version": "1.2.6",
+  "description": "",
   "bundledDependencies": [
     "rewire",
     "source-map-support"
   ],
   "dependencies": {
-    "jstestcontext": "^1.0.0-beta.1",
     "rewire": "^4.0.1",
     "source-map-support": "^0.5.4",
     "karma": "^4.1.0",
