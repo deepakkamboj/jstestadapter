@@ -42,7 +42,7 @@ namespace JSTest.AcceptanceTests
         [TestMethod]
         public void TestExecutionWithTestsMocha()
         {
-            this.TestExecutionWithTests();
+            this.TestExecutionWithTests("1");
         }
 
         [TestMethod]

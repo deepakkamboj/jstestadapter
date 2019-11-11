@@ -71,7 +71,7 @@ namespace JSTest.AcceptanceTests
         [ClassInitialize]
         public static void ClassInitialize(TestContext context)
         {
-            JestFrameworkMultipleSourceTests.InitializeBase("jest", "Jest", "Jest", "*");
+            JestFrameworkMultipleSourceTests.InitializeBase("jest", "Jest", "Jest");
         }
 
         [TestMethod]
@@ -83,7 +83,7 @@ namespace JSTest.AcceptanceTests
         [TestMethod]
         public void TestExecutionWithTestsJest_SingleSource()
         {
-            this.TestExecutionWithTests();
+            this.TestExecutionWithTests("1");
         }
 
         [TestMethod]

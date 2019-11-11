@@ -42,7 +42,7 @@ namespace JSTest.AcceptanceTests
         [TestMethod]
         public void TestExecutionWithTestsJasmine()
         {
-            this.TestExecutionWithTests();
+            this.TestExecutionWithTests("1");
         }
 
         [TestMethod]

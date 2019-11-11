@@ -23,7 +23,6 @@ namespace JSTest.AcceptanceTests
         private static string vstestPath;
         private static string testExecutionDirectory;
         private static string frameworkName;
-        private static string frameworkPackage;
         private static string frameworkItemFolder;
 
         #endregion
@@ -157,15 +156,24 @@ namespace JSTest.AcceptanceTests
                 File.Copy(newPath, newPath.Replace(testFrameworkItems, BaseFrameworkTest.testRepoPath), true);
         }
 
-        protected static void InitializeBase(string package, string frameworkName, string itemFolder, string packageVersion = "")
+        protected static void InitializeBase(IList<string> packages, string frameworkName, string itemFolder)
         {
             BaseFrameworkTest.InitializePaths();
             BaseFrameworkTest.InitializeTempFolder();
-            BaseFrameworkTest.InstallNpmPackage(package);
+
+            foreach (var package in packages)
+            {
+                BaseFrameworkTest.InstallNpmPackage(package);
+            }
+
             BaseFrameworkTest.CopyRepoItems(itemFolder);
-            BaseFrameworkTest.frameworkPackage = package;
             BaseFrameworkTest.frameworkName = frameworkName;
             BaseFrameworkTest.frameworkItemFolder = itemFolder;
+        }
+
+        protected static void InitializeBase(string package, string frameworkName, string itemFolder)
+        {
+            InitializeBase(new List<string>() { package }, frameworkName, itemFolder);
         }
 
         #endregion
@@ -320,10 +328,10 @@ namespace JSTest.AcceptanceTests
             }
         }
 
-        public void TestExecutionWithTests()
+        public void TestExecutionWithTests(string param)
         {
             this.TestExecution(new Dictionary<string, string>() {
-                { "Tests", "1" }
+                { "Tests", param }
             }, this.ExpectedOutput.ExecutionWithTestsOutput);
         }
 
